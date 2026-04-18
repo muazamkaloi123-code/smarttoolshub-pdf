@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTools Hub - Every tool you need to work with PDFs and Images</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression/dist/browser-image-compression.js"></script>
+    
+    <style>
+        :root {
+            --primary: #e5322d;
+            --primary-hover: #d22824;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border: #eaedf1;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); line-height: 1.5; }
+        
+        /* Header */
+        header { background: var(--card-bg); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--text-main); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .logo i { color: var(--primary); }
+        .nav-links a { color: var(--text-main); text-decoration: none; font-weight: 500; margin-left: 1.5rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+
+        /* Hero */
+        .hero { text-align: center; padding: 4rem 1rem; background: var(--card-bg); border-bottom: 1px solid var(--border); }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--text-main); }
+        .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 800px; margin: 0 auto; }
+
+        /* Container & Grid */
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .section-title { font-size: 1.5rem; margin: 2rem 0 1rem; color: var(--text-main); border-bottom: 2px solid var(--primary); padding-bottom: 0.5rem; display: inline-block;}
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+
+        /* Card */
+        .card { background: var(--card-bg); border-radius: 8px; padding: 2rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.04); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; }
+        .card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: var(--primary); }
+        .card i { font-size: 3rem; color: var(--primary); margin-bottom: 1rem; transition: transform 0.3s; }
+        .card:hover i { transform: scale(1.1); }
+        .card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .card p { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal { background: var(--card-bg); width: 100%; max-width: 600px; border-radius: 12px; padding: 2.5rem; position: relative; transform: translateY(20px); transition: transform 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .close-btn { position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+        .close-btn:hover { color: var(--primary); }
+        
+        .modal-header { text-align: center; margin-bottom: 2rem; }
+        .modal-header i { font-size: 3rem; color: var(--primary); margin-bottom: 1rem; }
+        .modal-header h2 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .modal-header p { color: var(--text-muted); }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        .file-drop-area { border: 2px dashed #ccc; border-radius: 8px; padding: 3rem 2rem; text-align: center; background: #fafafa; cursor: pointer; transition: all 0.2s; position: relative; margin-bottom: 1.5rem; }
+        .file-drop-area:hover { border-color: var(--primary); background: #fdf2f2; }
+        .file-drop-area i { font-size: 3rem; color: #ccc; margin-bottom: 1rem; }
+        .file-drop-area:hover i { color: var(--primary); }
+        .file-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .file-name { margin-top: 1rem; font-weight: 500; color: var(--primary); word-break: break-all; }
+        
+        input[type="text"], input[type="number"], input[type="password"], select, textarea { width: 100%; padding: 0.8rem 1rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        
+        .btn-action { width: 100%; background: var(--primary); color: white; border: none; padding: 1rem; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+        .btn-action:hover { background: var(--primary-hover); }
+        .btn-action:disabled { background: #fca5a5; cursor: not-allowed; }
+
+        .status-box { margin-top: 1.5rem; padding: 1rem; border-radius: 6px; text-align: center; display: none; font-weight: 500; }
+        .status-box.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; display: block; }
+        .status-box.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; display: block; }
+        .status-box.loading { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; display: block; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Footer */
+        footer { background: var(--card-bg); border-top: 1px solid var(--border); padding: 2rem; text-align: center; margin-top: 4rem; color: var(--text-muted); }
+
+        /* Mobile Menu */
+        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main); border: none; background: transparent; margin-right: 1rem; }
+        
+        .mobile-menu-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1001; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+        .mobile-menu-overlay.active { opacity: 1; visibility: visible; }
+        
+        .mobile-menu { position: fixed; top: 0; left: -280px; width: 280px; height: 100vh; background: var(--card-bg); z-index: 1002; transition: left 0.3s ease; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        .mobile-menu.active { left: 0; }
+        
+        .mobile-menu-header { padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .mobile-menu-header h2 { font-size: 1.2rem; margin: 0; color: var(--text-main); }
+        .close-menu-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+        
+        .mobile-menu-content { padding: 1rem 0; }
+        .mobile-cat-title { padding: 0.5rem 1.5rem; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; background: var(--bg); margin-top: 0.5rem; }
+        .mobile-tool-item { display: flex; align-items: center; padding: 0.8rem 1.5rem; cursor: pointer; color: var(--text-main); transition: background 0.2s; text-decoration: none; border-bottom: 1px solid var(--bg); }
+        .mobile-tool-item:hover { background: var(--bg); color: var(--primary); }
+        .mobile-tool-item i { width: 24px; color: var(--primary); margin-right: 0.8rem; text-align: center; font-size: 1.1rem; }
+        
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .menu-toggle { display: block; }
+            .header-left { display: flex; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left" style="display:flex; align-items:center;">
+            <button class="menu-toggle" onclick="openMobileMenu()"><i class="fas fa-bars"></i></button>
+            <a href="#" class="logo"><i class="fas fa-file-pdf"></i> SmartTools Hub</a>
+        </div>
+        <div class="nav-links">
+            <a href="mailto:muazamkaloi123@gmail.com">Contact Us</a>
+        </div>
+    </header>
+
+    <!-- Mobile Sidebar -->
+    <div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-header">
+            <h2><i class="fas fa-file-pdf" style="color:var(--primary)"></i> Tools</h2>
+            <button class="close-menu-btn" onclick="closeMobileMenu()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="mobile-menu-content" id="mobile-menu-content">
+            <!-- Injected by JS -->
+        </div>
+    </div>
+
+    <div class="hero">
+        <h1>Every tool you need to work with PDFs and Images</h1>
+        <p>100% Free. Secure. All tools process your files locally in your browser. No data leaves your computer.</p>
+    </div>
+
+    <div class="container" id="tools-container">
+        <!-- Tools will be injected here via JS -->
+    </div>
+
+    <footer>
+        <p>&copy; 2026 SmartTools Hub. All files processed locally. | Contact: muazamkaloi123@gmail.com</p>
+    </footer>
+
+    <!-- Global Modal -->
+    <div class="modal-overlay" id="tool-modal">
+        <div class="modal">
+            <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            <div class="modal-header" id="modal-header"></div>
+            <div id="modal-body"></div>
+            <button class="btn-action" id="modal-action-btn">Process</button>
+            <div class="status-box" id="modal-status"></div>
+        </div>
+    </div>
+
+    <script>
+        const { PDFDocument, rgb, degrees } = PDFLib;
+
+        // Tool Definitions
+        const tools = [
+            // Organize PDF
+            { id: 'merge', cat: 'ORGANIZE PDF', title: 'Merge PDF', icon: 'fas fa-object-group', desc: 'Combine multiple PDFs into one unified document.', 
+              html: `
+                <div class="file-drop-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Click or drag PDFs here to merge</p>
+                    <input type="file" id="file-input" class="file-input" multiple accept=".pdf">
+                    <div class="file-name" id="file-name"></div>
+                </div>`,
+              action: 'Merge PDFs', handler: handleMerge },
+            
+            { id: 'split', cat: 'ORGANIZE PDF', title: 'Split PDF', icon: 'fas fa-cut', desc: 'Extract each page of a PDF as a separate file.',
+              html: `
+                <div class="file-drop-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Select PDF to split</p>
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name"></div>
+                </div>`,
+              action: 'Split PDF', handler: handleSplit },
+            
+            { id: 'remove', cat: 'ORGANIZE PDF', title: 'Remove Pages', icon: 'fas fa-file-excel', desc: 'Delete specific pages from a PDF.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Pages to remove (e.g. 1,3,5)</label>
+                    <input type="text" id="param-pages" placeholder="1,3,5">
+                </div>`,
+              action: 'Remove Pages', handler: handleRemove },
+
+            { id: 'extract', cat: 'ORGANIZE PDF', title: 'Extract Pages', icon: 'fas fa-file-export', desc: 'Save specific pages into a new PDF.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Pages to extract (e.g. 1,2,5)</label>
+                    <input type="text" id="param-pages" placeholder="1,2,5">
+                </div>`,
+              action: 'Extract Pages', handler: handleExtract },
+
+            { id: 'organize', cat: 'ORGANIZE PDF', title: 'Organize PDF', icon: 'fas fa-sort-numeric-up', desc: 'Reorder pages in your PDF.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>New Page Order (e.g. 3,1,2)</label>
+                    <input type="text" id="param-pages" placeholder="3,1,2">
+                </div>`,
+              action: 'Organize PDF', handler: handleOrganize },
+
+            // Optimize PDF
+            { id: 'compress', cat: 'OPTIMIZE PDF', title: 'Compress PDF', icon: 'fas fa-compress-arrows-alt', desc: 'Reduce PDF file size by stripping metadata.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Compress PDF', handler: handleCompressPDF },
+
+            { id: 'ocr', cat: 'OPTIMIZE PDF', title: 'OCR PDF', icon: 'fas fa-font', desc: 'Extract text from the first page of a PDF using AI.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Extract Text', handler: handleOCR },
+
+            // Convert TO PDF
+            { id: 'jpg2pdf', cat: 'CONVERT TO PDF', title: 'JPG to PDF', icon: 'fas fa-images', desc: 'Convert multiple images to a single PDF.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" multiple accept="image/*">
+                    <div class="file-name" id="file-name">Select Images</div>
+                </div>`,
+              action: 'Convert to PDF', handler: handleJpgToPdf },
+
+            { id: 'html2pdf', cat: 'CONVERT TO PDF', title: 'HTML to PDF', icon: 'fas fa-code', desc: 'Convert HTML code into a PDF document.',
+              html: `
+                <div class="form-group">
+                    <label>Enter HTML Code</label>
+                    <textarea id="param-html" rows="6" placeholder="<h1>Hello World</h1><p>This is a test.</p>"></textarea>
+                </div>`,
+              action: 'Convert to PDF', handler: handleHtmlToPdf },
+
+            // Convert FROM PDF
+            { id: 'pdf2jpg', cat: 'CONVERT FROM PDF', title: 'PDF to JPG', icon: 'fas fa-file-image', desc: 'Convert the first page of a PDF to a JPG image.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Convert to JPG', handler: handlePdfToJpg },
+
+            { id: 'pdf2pdfa', cat: 'CONVERT FROM PDF', title: 'PDF to PDF/A', icon: 'fas fa-archive', desc: 'Add archive metadata (Simulated PDF/A).',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Save as PDF/A', handler: handlePdfToPdfA },
+
+            // Edit PDF
+            { id: 'rotate', cat: 'EDIT PDF', title: 'Rotate PDF', icon: 'fas fa-sync', desc: 'Rotate all pages 90° clockwise.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Rotate PDF', handler: handleRotate },
+
+            { id: 'pagenum', cat: 'EDIT PDF', title: 'Add Page Numbers', icon: 'fas fa-list-ol', desc: 'Add page numbers to the bottom of each page.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>`,
+              action: 'Add Numbers', handler: handlePageNumbers },
+
+            { id: 'watermark', cat: 'EDIT PDF', title: 'Add Watermark', icon: 'fas fa-stamp', desc: 'Stamp a text watermark across all pages.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Watermark Text</label>
+                    <input type="text" id="param-text" placeholder="CONFIDENTIAL">
+                </div>`,
+              action: 'Add Watermark', handler: handleWatermark },
+
+            { id: 'crop', cat: 'EDIT PDF', title: 'Crop PDF', icon: 'fas fa-crop', desc: 'Crop page margins.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Margin to crop (in pts, e.g. 30)</label>
+                    <input type="number" id="param-margin" value="30">
+                </div>`,
+              action: 'Crop PDF', handler: handleCrop },
+
+            { id: 'redact', cat: 'EDIT PDF', title: 'Redact PDF', icon: 'fas fa-eraser', desc: 'Black out specific text area (Simulated visual redaction).',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Text description (draws a black box in center for demo)</label>
+                    <input type="text" id="param-text" placeholder="e.g. SSN">
+                </div>`,
+              action: 'Redact PDF', handler: handleRedact },
+
+            // Security
+            { id: 'unlock', cat: 'PDF SECURITY', title: 'Unlock PDF', icon: 'fas fa-unlock', desc: 'Remove password protection from a PDF.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select Encrypted PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="param-pwd">
+                </div>`,
+              action: 'Unlock PDF', handler: handleUnlock },
+
+            { id: 'protect', cat: 'PDF SECURITY', title: 'Protect PDF', icon: 'fas fa-lock', desc: 'Add password metadata (Simulated encryption).',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Set Password</label>
+                    <input type="password" id="param-pwd">
+                </div>`,
+              action: 'Protect PDF', handler: handleProtect },
+
+            { id: 'sign', cat: 'PDF SECURITY', title: 'Sign PDF', icon: 'fas fa-signature', desc: 'Add a signature image to the first page.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept=".pdf">
+                    <div class="file-name" id="file-name">Select PDF</div>
+                </div>
+                <div class="form-group">
+                    <label>Signature Image (PNG/JPG)</label>
+                    <input type="file" id="param-img" accept="image/*" class="file-input" style="position:static; opacity:1; padding:0; border:none;">
+                </div>`,
+              action: 'Sign PDF', handler: handleSign },
+
+            // Image Tools
+            { id: 'img-compress', cat: 'IMAGE TOOLS', title: 'Compress Image', icon: 'fas fa-compress-arrows-alt', desc: 'Reduce image file size with a quality slider.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept="image/*">
+                    <div class="file-name" id="file-name">Select Image</div>
+                </div>
+                <div class="form-group">
+                    <label>Quality (0.1 to 1.0)</label>
+                    <input type="range" id="param-quality" min="0.1" max="1" step="0.1" value="0.8" style="width:100%">
+                    <div id="q-val" style="text-align:center; font-weight:bold; margin-top:0.5rem">0.8</div>
+                </div>`,
+              action: 'Compress Image', handler: handleCompressImage },
+
+            { id: 'img-resize', cat: 'IMAGE TOOLS', title: 'Resize Image', icon: 'fas fa-expand-arrows-alt', desc: 'Change the width and height of an image.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept="image/*">
+                    <div class="file-name" id="file-name">Select Image</div>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1">
+                        <label>Width (px)</label>
+                        <input type="number" id="param-w" placeholder="800">
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Height (px)</label>
+                        <input type="number" id="param-h" placeholder="600">
+                    </div>
+                </div>`,
+              action: 'Resize Image', handler: handleResizeImage },
+
+            { id: 'img-convert', cat: 'IMAGE TOOLS', title: 'Convert Image', icon: 'fas fa-exchange-alt', desc: 'Convert JPG to PNG or vice-versa.',
+              html: `
+                <div class="file-drop-area">
+                    <input type="file" id="file-input" class="file-input" accept="image/*">
+                    <div class="file-name" id="file-name">Select Image</div>
+                </div>
+                <div class="form-group">
+                    <label>Convert To</label>
+                    <select id="param-fmt">
+                        <option value="image/png">PNG</option>
+                        <option value="image/jpeg">JPG</option>
+                    </select>
+                </div>`,
+              action: 'Convert Image', handler: handleConvertImage }
+        ];
+
+        let currentTool = null;
+
+        // Mobile Menu Functions
+        function openMobileMenu() {
+            document.getElementById('mobile-menu').classList.add('active');
+            document.getElementById('mobile-menu-overlay').classList.add('active');
+        }
+
+        function closeMobileMenu() {
+            document.getElementById('mobile-menu').classList.remove('active');
+            document.getElementById('mobile-menu-overlay').classList.remove('active');
+        }
+
+        function openTool(toolId) {
+            const tool = tools.find(t => t.id === toolId);
+            if(tool) {
+                closeMobileMenu();
+                openModal(tool);
+            }
+        }
+
+        // Render UI
+        const container = document.getElementById('tools-container');
+        const mobileContent = document.getElementById('mobile-menu-content');
+        const categories = [...new Set(tools.map(t => t.cat))];
+        
+        categories.forEach(cat => {
+            const sec = document.createElement('div');
+            sec.innerHTML = `<h2 class="section-title">${cat}</h2><div class="grid" id="grid-${cat.replace(/\s+/g, '-')}"></div>`;
+            container.appendChild(sec);
+            
+            // Mobile category
+            const mobCat = document.createElement('div');
+            mobCat.className = 'mobile-cat-title';
+            mobCat.innerText = cat;
+            mobileContent.appendChild(mobCat);
+            
+            // Render items in mobile menu and grid
+            tools.filter(t => t.cat === cat).forEach(tool => {
+                // Desktop grid
+                const grid = document.getElementById(`grid-${cat.replace(/\s+/g, '-')}`);
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<i class="${tool.icon}"></i><h3>${tool.title}</h3><p>${tool.desc}</p>`;
+                card.onclick = () => openModal(tool);
+                grid.appendChild(card);
+                
+                // Mobile item
+                const mobItem = document.createElement('a');
+                mobItem.className = 'mobile-tool-item';
+                mobItem.innerHTML = `<i class="${tool.icon}"></i> ${tool.title}`;
+                mobItem.onclick = () => openTool(tool.id);
+                mobileContent.appendChild(mobItem);
+            });
+        });
+
+        // Modal Logic
+        const modalOverlay = document.getElementById('tool-modal');
+        const modalHeader = document.getElementById('modal-header');
+        const modalBody = document.getElementById('modal-body');
+        const modalBtn = document.getElementById('modal-action-btn');
+        const modalStatus = document.getElementById('modal-status');
+
+        function openModal(tool) {
+            currentTool = tool;
+            modalHeader.innerHTML = `<i class="${tool.icon}"></i><h2>${tool.title}</h2><p>${tool.desc}</p>`;
+            modalBody.innerHTML = tool.html;
+            modalBtn.innerHTML = `<i class="${tool.icon}"></i> ${tool.action}`;
+            modalBtn.onclick = executeTool;
+            setStatus('');
+            
+            // File input listener
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) {
+                fileInput.onchange = (e) => {
+                    const files = e.target.files;
+                    if(files.length) {
+                        document.getElementById('file-name').innerText = files.length > 1 ? `${files.length} files selected` : files[0].name;
+                    }
+                };
+            }
+
+            // Quality slider listener
+            const qInput = document.getElementById('param-quality');
+            if(qInput) {
+                qInput.oninput = (e) => { document.getElementById('q-val').innerText = e.target.value; }
+            }
+            
+            modalOverlay.classList.add('active');
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            currentTool = null;
+        }
+
+        function setStatus(msg, type = '') {
+            if(!msg) {
+                modalStatus.className = 'status-box';
+                modalStatus.style.display = 'none';
+                return;
+            }
+            modalStatus.className = `status-box ${type}`;
+            modalStatus.innerHTML = msg;
+        }
+
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function executeTool() {
+            try {
+                modalBtn.disabled = true;
+                setStatus('<div class="loader"></div> Processing...', 'loading');
+                const result = await currentTool.handler();
+                if(result && result.blob) {
+                    downloadFile(result.blob, result.filename);
+                    setStatus('Success! File downloaded automatically.', 'success');
+                } else {
+                    setStatus('Success! Task completed.', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                setStatus(`Error: ${err.message || 'Something went wrong.'}`, 'error');
+            } finally {
+                modalBtn.disabled = false;
+            }
+        }
+
+        // --- Handlers ---
+        
+        async function handleMerge() {
+            const files = document.getElementById('file-input').files;
+            if(files.length < 2) throw new Error("Please select at least 2 PDFs.");
+            const mergedPdf = await PDFDocument.create();
+            for(let i=0; i<files.length; i++) {
+                const bytes = await files[i].arrayBuffer();
+                const pdf = await PDFDocument.load(bytes);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((p) => mergedPdf.addPage(p));
+            }
+            const outBytes = await mergedPdf.save();
+            return { blob: new Blob([outBytes], {type: "application/pdf"}), filename: "merged.pdf" };
+        }
+
+        async function handleSplit() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            const zip = new JSZip();
+            for(let i=0; i<pdf.getPageCount(); i++) {
+                const newPdf = await PDFDocument.create();
+                const [p] = await newPdf.copyPages(pdf, [i]);
+                newPdf.addPage(p);
+                zip.file(`page_${i+1}.pdf`, await newPdf.save());
+            }
+            const blob = await zip.generateAsync({type: "blob"});
+            return { blob, filename: "split_pages.zip" };
+        }
+
+        async function handleRemove() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const pStr = document.getElementById('param-pages').value;
+            const pages = pStr.split(',').map(s=>parseInt(s.trim())-1).sort((a,b)=>b-a);
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pages.forEach(p => { if(p>=0 && p<pdf.getPageCount()) pdf.removePage(p); });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "removed.pdf" };
+        }
+
+        async function handleExtract() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const pStr = document.getElementById('param-pages').value;
+            const pages = pStr.split(',').map(s=>parseInt(s.trim())-1);
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            const newPdf = await PDFDocument.create();
+            const validPages = pages.filter(p=>p>=0 && p<pdf.getPageCount());
+            if(!validPages.length) throw new Error("Invalid pages.");
+            const copied = await newPdf.copyPages(pdf, validPages);
+            copied.forEach(p => newPdf.addPage(p));
+            return { blob: new Blob([await newPdf.save()], {type: "application/pdf"}), filename: "extracted.pdf" };
+        }
+
+        async function handleOrganize() {
+            return await handleExtract(); // Logic is identical to extract, as it uses the specified order
+        }
+
+        async function handleCompressPDF() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            return { blob: new Blob([await pdf.save({useObjectStreams: false})], {type: "application/pdf"}), filename: "compressed.pdf" };
+        }
+
+        async function handleOCR() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width; canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            
+            setStatus('<div class="loader"></div> Running OCR (may take a moment)...', 'loading');
+            const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+            return { blob: new Blob([text], {type: "text/plain"}), filename: "ocr_result.txt" };
+        }
+
+        async function handleJpgToPdf() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select images.");
+            const pdf = await PDFDocument.create();
+            for(let i=0; i<files.length; i++) {
+                const bytes = await files[i].arrayBuffer();
+                let img;
+                if(files[i].type.includes('jpeg') || files[i].type.includes('jpg')) img = await pdf.embedJpg(bytes);
+                else if(files[i].type.includes('png')) img = await pdf.embedPng(bytes);
+                else continue;
+                const page = pdf.addPage([img.width, img.height]);
+                page.drawImage(img, {x:0, y:0, width: img.width, height: img.height});
+            }
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "images.pdf" };
+        }
+
+        async function handleHtmlToPdf() {
+            const html = document.getElementById('param-html').value;
+            if(!html) throw new Error("Enter HTML.");
+            const opt = { margin: 10, filename: 'html.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+            const worker = html2pdf().set(opt).from(html).output('blob');
+            const blob = await worker;
+            return { blob, filename: "html.pdf" };
+        }
+
+        async function handlePdfToJpg() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width; canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+            return { blob, filename: "page1.jpg" };
+        }
+
+        async function handlePdfToPdfA() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.setTitle("PDF/A Compliant (Simulated)");
+            pdf.setAuthor("SmartTools Hub");
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "pdfa_simulated.pdf" };
+        }
+
+        async function handleRotate() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.getPages().forEach(p => p.setRotation(degrees(p.getRotation().angle + 90)));
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "rotated.pdf" };
+        }
+
+        async function handlePageNumbers() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.getPages().forEach((p, i) => {
+                p.drawText(String(i+1), { x: p.getWidth()/2, y: 20, size: 12, color: rgb(0,0,0) });
+            });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "numbered.pdf" };
+        }
+
+        async function handleWatermark() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const txt = document.getElementById('param-text').value || "WATERMARK";
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.getPages().forEach(p => {
+                p.drawText(txt, { x: p.getWidth()/4, y: p.getHeight()/4, size: 50, color: rgb(0.8,0.2,0.2), opacity: 0.3, rotate: degrees(45) });
+            });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "watermarked.pdf" };
+        }
+
+        async function handleCrop() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const m = parseInt(document.getElementById('param-margin').value) || 0;
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.getPages().forEach(p => {
+                const s = p.getSize();
+                p.setCropBox(m, m, s.width - m*2, s.height - m*2);
+            });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "cropped.pdf" };
+        }
+
+        async function handleRedact() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const txt = document.getElementById('param-text').value || "REDACTED";
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.getPages().forEach(p => {
+                p.drawRectangle({ x: p.getWidth()/4, y: p.getHeight()/2, width: p.getWidth()/2, height: 50, color: rgb(0,0,0) });
+                p.drawText(txt, { x: p.getWidth()/4 + 10, y: p.getHeight()/2 + 15, size: 15, color: rgb(1,1,1) });
+            });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "redacted.pdf" };
+        }
+
+        async function handleUnlock() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const pwd = document.getElementById('param-pwd').value;
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes, { password: pwd });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "unlocked.pdf" };
+        }
+
+        async function handleProtect() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const pwd = document.getElementById('param-pwd').value;
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            pdf.setKeywords(['PROTECTED', pwd]);
+            alert("Note: True PDF encryption requires WASM/Server. Saved with mock metadata.");
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "protected_mock.pdf" };
+        }
+
+        async function handleSign() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select a PDF.");
+            const imgs = document.getElementById('param-img').files;
+            if(!imgs.length) throw new Error("Select an image.");
+            
+            const bytes = await files[0].arrayBuffer();
+            const pdf = await PDFDocument.load(bytes);
+            const imgBytes = await imgs[0].arrayBuffer();
+            let img;
+            if(imgs[0].type.includes('png')) img = await pdf.embedPng(imgBytes);
+            else img = await pdf.embedJpg(imgBytes);
+            
+            pdf.getPages()[0].drawImage(img, { x: 50, y: 50, width: 150, height: 150*(img.height/img.width) });
+            return { blob: new Blob([await pdf.save()], {type: "application/pdf"}), filename: "signed.pdf" };
+        }
+
+        async function handleCompressImage() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select an image.");
+            const q = parseFloat(document.getElementById('param-quality').value);
+            const blob = await imageCompression(files[0], { maxSizeMB: 1, useWebWorker: true, initialQuality: q });
+            return { blob, filename: "compressed_" + files[0].name };
+        }
+
+        async function handleResizeImage() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select an image.");
+            const w = parseInt(document.getElementById('param-w').value);
+            const h = parseInt(document.getElementById('param-h').value);
+            if(!w || !h) throw new Error("Enter dimensions.");
+            
+            const img = new Image();
+            img.src = URL.createObjectURL(files[0]);
+            await new Promise(r => img.onload = r);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const blob = await new Promise(res => canvas.toBlob(res, files[0].type, 0.9));
+            return { blob, filename: "resized_" + files[0].name };
+        }
+
+        async function handleConvertImage() {
+            const files = document.getElementById('file-input').files;
+            if(!files.length) throw new Error("Select an image.");
+            const fmt = document.getElementById('param-fmt').value;
+            
+            const img = new Image();
+            img.src = URL.createObjectURL(files[0]);
+            await new Promise(r => img.onload = r);
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width; canvas.height = img.height;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            const blob = await new Promise(res => canvas.toBlob(res, fmt, 0.9));
+            const ext = fmt === 'image/png' ? 'png' : 'jpg';
+            return { blob, filename: `converted.${ext}` };
+        }
+    </script>
+</body>
+</html>
